@@ -76,7 +76,7 @@ echo "New version upgrades as to lastest:" && $(ssh -V)
 
 More information please refer `build-RPMs-OpenSSH-CentOS.sh` script.
 
-The [release page](https://github.com/Junyangz/upgrade-openssh-centos/releases) has some RPMs that I built, feel free to use it.
+The [release page](https://github.com/ztsoft/Build-Update-Openssh-Centos/releases) has some RPMs that I built, feel free to use it.
 
 ## Reference
 
