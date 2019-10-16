@@ -1,30 +1,41 @@
 #!/bin/bash
-# Build OpenSSH RPM for CentOS 6|7
-# test ok on Centos 6|7 with openssh version {7.9p1,8.0p1}
+# Build OpenSSH RPM for CentOS 6|7|8
+# Build by zt
+# Tested ok on CentOS 6|7|8 with openssh version {7.5p1 to 8.1p1}
+# ========
+# Changelog Begin
+# 20190403 Write all code for new
+# 20191015 Fix bug that root could not login after upgrade on CentOS 7.x
+# 20191016 Support CentOS 8
+# Changelog End
+# ========
 if [[ $EUID -ne 0 ]]; then
     echo "Please run as root"
     exit 1
 fi
 
-rhel_version=`rpm -q --queryformat '%{VERSION}' centos-release`
+rhel_version=$(rpm -q --queryformat '%{VERSION}' centos-release)
 
 if [ ! -x $1 ]; then
     version=$1
-else
+else    ``
     echo "Usage: sh $0 {openssh-version}(default is 7.9p1)"
     echo "version not provided '7.9p1' will be used."
     while true; do
         read -p "Do you want to continue [y/N]: " yn
         case $yn in
-            [Yy]* ) version="7.9p1"; break;;
-            [Nn]* ) exit ;;
-            * ) echo "Please answer yes or no.";;
+        [Yy]*)
+            version="7.9p1"
+            break
+            ;;
+        [Nn]*) exit ;;
+        *) echo "Please answer yes or no." ;;
         esac
     done
 fi
 
-function build_RPMs(){
-    yum install -y pam-devel rpm-build rpmdevtools zlib-devel openssl-devel krb5-devel gcc wget
+function build_RPMs() {
+    yum install -y pam-devel rpm-build rpmdevtools zlib-devel openssl-devel krb5-devel gcc wget perl
     mkdir -p ~/rpmbuild/SOURCES && cd ~/rpmbuild/SOURCES
     wget -c https://mirrors.tuna.tsinghua.edu.cn/OpenBSD/OpenSSH/portable/openssh-${version}.tar.gz
     wget -c https://mirrors.tuna.tsinghua.edu.cn/OpenBSD/OpenSSH/portable/openssh-${version}.tar.gz.asc
@@ -48,7 +59,9 @@ function build_RPMs(){
     #if encounter build error with the follow line, comment it.
     sed -i -e "s/PreReq: initscripts >= 5.00/#PreReq: initscripts >= 5.00/g" openssh.spec
     #CentOS 7
-    if [ "${rhel_version}" -eq "7" ]; then
+    if [ "${rhel_version}" == "7" ]; then
+        sed -i -e "s/BuildRequires: openssl-devel < 1.1/#BuildRequires: openssl-devel < 1.1/g" openssh.spec
+    elif [ "${rhel_version}" == "8.0" ]; then
         sed -i -e "s/BuildRequires: openssl-devel < 1.1/#BuildRequires: openssl-devel < 1.1/g" openssh.spec
     fi
     rpmbuild -ba openssh.spec
@@ -59,22 +72,27 @@ function build_RPMs(){
 
 }
 
-function upgrade_openssh(){
+function upgrade_openssh() {
     cd /tmp
     mkdir openssh && cd openssh
     timestamp=$(date +%s)
-    if [ ! -f ~/openssh-${version}-RPMs.el${rhel_version}.tar.gz ]; then 
-        echo "~/openssh-${version}-RPMs.el${rhel_version}.tar.gz not exist" 
+    if [ ! -f ~/openssh-${version}-RPMs.el${rhel_version}.tar.gz ]; then
+        echo "~/openssh-${version}-RPMs.el${rhel_version}.tar.gz not exist"
         exit 1
     fi
     cp ~/openssh-${version}-RPMs.el${rhel_version}.tar.gz ./
-    tar zxf openssh-${version}-RPMs.el${rhel_version}.tar.gz 
+    tar zxf openssh-${version}-RPMs.el${rhel_version}.tar.gz
     cp /etc/pam.d/sshd pam-ssh-conf-${timestamp}
-    rpm -U *.rpm
+    rpm -Uvh *.rpm
     mv /etc/pam.d/sshd /etc/pam.d/sshd_${timestamp}
     yes | cp pam-ssh-conf-${timestamp} /etc/pam.d/sshd
-    #sed -i 's/#PermitRootLogin yes/PermitRootLogin yes/g' /etc/ssh/sshd_config
-    if [ `rpm -q --queryformat '%{VERSION}' centos-release` -eq "7" ]; then
+    sed -i 's/#PermitRootLogin prohibit-password/PermitRootLogin yes/' /etc/ssh/sshd_config
+    sed -i 's/#PermitRootLogin no/PermitRootLogin yes/' /etc/ssh/sshd_config
+    sed -i 's/#UsePAM no/UsePAM yes/' /etc/ssh/sshd_config
+    if [ $(rpm -q --queryformat '%{VERSION}' centos-release) == "7" ]; then
+        chmod 600 /etc/ssh/ssh*
+        systemctl restart sshd.service
+    elif [ $(rpm -q --queryformat '%{VERSION}' centos-release) == "8.0" ]; then
         chmod 600 /etc/ssh/ssh*
         systemctl restart sshd.service
     else
@@ -85,15 +103,18 @@ function upgrade_openssh(){
     echo "New version upgrades as to lastest:" && $(ssh -V)
 }
 
-function main(){
-    if [ -f ~/openssh-${version}-RPMs.el${rhel_version}.tar.gz ];then
+function main() {
+    if [ -f ~/openssh-${version}-RPMs.el${rhel_version}.tar.gz ]; then
         echo "openssh-${version}-RPMs.el${rhel_version}.tar.gz file already exist, do you want to build again?"
         while true; do
             read -p "Continue build [y/N]: " yn
             case $yn in
-                [Yy]* ) build_RPMs; break;;
-                [Nn]* ) break ;;
-                * ) echo "Please answer yes or no.";;
+            [Yy]*)
+                build_RPMs
+                break
+                ;;
+            [Nn]*) break ;;
+            *) echo "Please answer yes or no." ;;
             esac
         done
     else
@@ -105,9 +126,12 @@ function main(){
     while true; do
         read -p "Do you want to install update now [y/N]: " yn
         case $yn in
-            [Yy]* ) upgrade_openssh; break;;
-            [Nn]* ) exit ;;
-            * ) echo "Please answer yes or no.";;
+        [Yy]*)
+            upgrade_openssh
+            break
+            ;;
+        [Nn]*) exit ;;
+        *) echo "Please answer yes or no." ;;
         esac
     done
 }
