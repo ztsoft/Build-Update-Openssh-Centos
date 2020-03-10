@@ -3,7 +3,7 @@
 ---
 
 ## Changelog
-20191018 Support Centos 8.x and Openssh 8.1p
+20191018 Support Centos 8.x and Openssh 8.1p1
 
 ## Build RPMs
 
