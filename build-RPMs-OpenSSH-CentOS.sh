@@ -1,12 +1,13 @@
 #!/bin/bash
 # Build OpenSSH RPM for CentOS 6|7|8
 # Build by zt
-# Tested ok on CentOS 6|7|8 with openssh version {7.5p1 to 8.1p1}
+# Tested ok on CentOS 6|7|8 with openssh version {7.5p1 to 8.2p1}
 # ========
 # Changelog Begin
 # 20190403 Write all code for new
 # 20191015 Fix bug that root could not login after upgrade on CentOS 7.x
 # 20191016 Support CentOS 8
+# 20200310 Support Openssh 8.2p1
 # Changelog End
 # ========
 if [[ $EUID -ne 0 ]]; then
@@ -19,13 +20,13 @@ rhel_version=$(rpm -q --queryformat '%{VERSION}' centos-release)
 if [ ! -x $1 ]; then
     version=$1
 else    ``
-    echo "Usage: sh $0 {openssh-version}(default is 7.9p1)"
-    echo "version not provided '7.9p1' will be used."
+    echo "Usage: sh $0 {openssh-version}(default is 8.2p1)"
+    echo "version not provided '8.2p1' will be used."
     while true; do
         read -p "Do you want to continue [y/N]: " yn
         case $yn in
         [Yy]*)
-            version="7.9p1"
+            version="8.2p1"
             break
             ;;
         [Nn]*) exit ;;
@@ -64,6 +65,10 @@ function build_RPMs() {
     elif [ "${rhel_version}" == "8.0" ]; then
         sed -i -e "s/BuildRequires: openssl-devel < 1.1/#BuildRequires: openssl-devel < 1.1/g" openssh.spec
     fi
+    if [ "${version}" == "8.2p1" ]; then
+        sed -i "/%attr(0755,root,root) %{_libexecdir}\/openssh\/ssh-pkcs11-helper/ a\\%attr(0755,root,root) %{_libexecdir}\/openssh\/ssh-sk-helper" openssh.spec
+        sed -i "/%attr(0644,root,root) %{_mandir}\/man8\/ssh-pkcs11-helper.8*/ a\\%attr(0644,root,root) %{_mandir}\/man8\/ssh-sk-helper.8*" openssh.spec
+    fi
     rpmbuild -ba openssh.spec
     cd /root/rpmbuild/RPMS/x86_64/
     tar zcvf openssh-${version}-RPMs.el${rhel_version}.tar.gz openssh*
@@ -88,6 +93,7 @@ function upgrade_openssh() {
     yes | cp pam-ssh-conf-${timestamp} /etc/pam.d/sshd
     sed -i 's/#PermitRootLogin prohibit-password/PermitRootLogin yes/' /etc/ssh/sshd_config
     sed -i 's/#PermitRootLogin no/PermitRootLogin yes/' /etc/ssh/sshd_config
+    sed -i 's/#PermitRootLogin yes/PermitRootLogin yes/' /etc/ssh/sshd_config
     sed -i 's/#UsePAM no/UsePAM yes/' /etc/ssh/sshd_config
     if [ $(rpm -q --queryformat '%{VERSION}' centos-release) == "7" ]; then
         chmod 600 /etc/ssh/ssh*
