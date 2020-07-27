@@ -85,5 +85,3 @@ The [release page](https://github.com/ztsoft/Build-Update-Openssh-Centos/release
 ## Reference
 
 [Build OpenSSH RPM for Centos](http://www.arvinep.com/2015/12/building-rpm-openssh-71p1-on-rhelcentos.html)
-
-[gist](https://gist.github.com/tjheeta/654a246d18fea65b2da0)
