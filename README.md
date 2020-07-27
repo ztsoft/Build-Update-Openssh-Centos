@@ -4,9 +4,9 @@
 
 ## Changelog
 20191018 Support Centos 8.x and Openssh 8.1p1  
-20200310 Support Openssh 8.2p1
-20200531 Support OpenSSH 8.3p1
-20200612 Optimize code
+20200310 Support Openssh 8.2p1  
+20200531 Support OpenSSH 8.3p1  
+20200612 Optimize code  
 ## Build RPMs
 
 ```bash
