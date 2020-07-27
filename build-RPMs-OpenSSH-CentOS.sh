@@ -19,7 +19,8 @@ rhel_version=$(rpm -q --queryformat '%{VERSION}' centos-release)
 
 if [ ! -x $1 ]; then
     version=$1
-else    ``
+else
+    $()
     echo "Usage: sh $0 {openssh-version}(default is 8.2p1)"
     echo "version not provided '8.2p1' will be used."
     while true; do
