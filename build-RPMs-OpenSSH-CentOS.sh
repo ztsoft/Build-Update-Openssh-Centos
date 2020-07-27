@@ -1,13 +1,15 @@
 #!/bin/bash
 # Build OpenSSH RPM for CentOS 6|7|8
 # Build by zt
-# Tested ok on CentOS 6|7|8 with openssh version {7.5p1 to 8.2p1}
+# Tested ok on CentOS 6|7|8 with openssh version {7.5p1 to 8.3p1}
 # ========
 # Changelog Begin
 # 20190403 Write all code for new
 # 20191015 Fix bug that root could not login after upgrade on CentOS 7.x
 # 20191016 Support CentOS 8
-# 20200310 Support Openssh 8.2p1
+# 20200310 Support OpenSSH 8.2p1
+# 20200531 Support OpenSSH 8.3p1
+# 20200612 Optimize code
 # Changelog End
 # ========
 if [[ $EUID -ne 0 ]]; then
@@ -15,19 +17,20 @@ if [[ $EUID -ne 0 ]]; then
     exit 1
 fi
 
+echo "Version: v6 20200618"
+
 rhel_version=$(rpm -q --queryformat '%{VERSION}' centos-release)
 
 if [ ! -x $1 ]; then
     version=$1
-else
-    $()
-    echo "Usage: sh $0 {openssh-version}(default is 8.2p1)"
-    echo "version not provided '8.2p1' will be used."
+else    ``
+    echo "Usage: sh $0 {openssh-version}(default is 8.3p1)"
+    echo "version not provided '8.3p1' will be used."
     while true; do
         read -p "Do you want to continue [y/N]: " yn
         case $yn in
         [Yy]*)
-            version="8.2p1"
+            version="8.3p1"
             break
             ;;
         [Nn]*) exit ;;
@@ -37,7 +40,7 @@ else
 fi
 
 function build_RPMs() {
-    yum install -y pam-devel rpm-build rpmdevtools zlib-devel openssl-devel krb5-devel gcc wget perl
+    yum install -y pam-devel rpm-build rpmdevtools zlib-devel krb5-devel gcc wget perl libXt-devel imake gtk2-devel openssl-devel
     mkdir -p ~/rpmbuild/SOURCES && cd ~/rpmbuild/SOURCES
     wget -c https://mirrors.tuna.tsinghua.edu.cn/OpenBSD/OpenSSH/portable/openssh-${version}.tar.gz
     wget -c https://mirrors.tuna.tsinghua.edu.cn/OpenBSD/OpenSSH/portable/openssh-${version}.tar.gz.asc
@@ -66,7 +69,7 @@ function build_RPMs() {
     elif [ "${rhel_version}" == "8.0" ]; then
         sed -i -e "s/BuildRequires: openssl-devel < 1.1/#BuildRequires: openssl-devel < 1.1/g" openssh.spec
     fi
-    if [ "${version}" == "8.2p1" ]; then
+    if [ "${version}" == "8.2p1" ] || [ "${version}" == "8.3p1" ]; then
         sed -i "/%attr(0755,root,root) %{_libexecdir}\/openssh\/ssh-pkcs11-helper/ a\\%attr(0755,root,root) %{_libexecdir}\/openssh\/ssh-sk-helper" openssh.spec
         sed -i "/%attr(0644,root,root) %{_mandir}\/man8\/ssh-pkcs11-helper.8*/ a\\%attr(0644,root,root) %{_mandir}\/man8\/ssh-sk-helper.8*" openssh.spec
     fi
