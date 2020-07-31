@@ -4,12 +4,13 @@
 # Tested ok on CentOS 6|7|8 with openssh version {7.5p1 to 8.3p1}
 # ========
 # Changelog Begin
-# 20190403 Write all code for new
-# 20191015 Fix bug that root could not login after upgrade on CentOS 7.x
-# 20191016 Support CentOS 8
-# 20200310 Support OpenSSH 8.2p1
-# 20200531 Support OpenSSH 8.3p1
+# 20200731 Remove version of sshd
 # 20200612 Optimize code
+# 20200531 Support OpenSSH 8.3p1
+# 20200310 Support OpenSSH 8.2p1
+# 20191016 Support CentOS 8
+# 20191015 Fix bug that root could not login after upgrade on CentOS 7.x
+# 20190403 Write all code for new
 # Changelog End
 # ========
 
@@ -52,6 +53,7 @@ function build_RPMs() {
     # the default provided doesn't work properly on CentOS 6.5
     tar zxvf openssh-${version}.tar.gz
     yes | cp /etc/pam.d/sshd openssh-${version}/contrib/redhat/sshd.pam
+    sed -i -e 's/".*"/""/g' ~/rpmbuild/SOURCES/openssh-${version}/version.h
     mv openssh-${version}.tar.gz{,.orig}
     tar zcpf openssh-${version}.tar.gz openssh-${version}
     cd
