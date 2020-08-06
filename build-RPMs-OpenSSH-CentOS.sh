@@ -53,6 +53,7 @@ function build_RPMs() {
     # the default provided doesn't work properly on CentOS 6.5
     tar zxvf openssh-${version}.tar.gz
     yes | cp /etc/pam.d/sshd openssh-${version}/contrib/redhat/sshd.pam
+    # remove openssh version flag
     sed -i -e 's/".*"/""/g' ~/rpmbuild/SOURCES/openssh-${version}/version.h
     mv openssh-${version}.tar.gz{,.orig}
     tar zcpf openssh-${version}.tar.gz openssh-${version}
